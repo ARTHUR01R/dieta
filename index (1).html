@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de dieta</title>
+<style>
+:root{--bg:#f7faf1;--card:#fff;--ink:#2f3d2c;--mute:#7a8a74;--line:#e4ecdc;--accent:#607353;--p:#ff7a6b;--c:#ffc247;--f:#4cc2c9}
+@media (prefers-color-scheme:dark){:root{--bg:#1a2218;--card:#243022;--ink:#eef4ea;--mute:#a9b8a3;--line:#364433;--accent:#86a174;--p:#ff8f80;--c:#ffd070;--f:#6fd3d9}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px 14px 48px}
+main{max-width:640px;margin:0 auto}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 20px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+h2{font-size:1.05rem;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:.85rem;color:var(--mute)}
+input,select{width:100%;margin-top:4px;padding:10px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.full{grid-column:1/-1}
+.hint{font-size:.8rem;color:var(--mute);margin:6px 0 0}
+.big{font-size:2.6rem;font-weight:700;line-height:1;margin:4px 0}
+.big small{font-size:1rem;font-weight:400;color:var(--mute)}
+.row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--mute);font-size:.9rem}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:14px 0 10px}
+.bar i{display:block}
+.macros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.macros b{display:block;font-size:1.3rem}
+.macros span{font-size:.8rem;color:var(--mute)}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--mute);font-size:.8rem}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.seg button{font:inherit;font-size:.85rem;padding:9px 4px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:420px){.seg{grid-template-columns:1fr 1fr}}
+.btn{font:inherit;font-size:.9rem;padding:10px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:6px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:focus-visible,.x:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.add{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:16px 0 8px}
+.stats b{display:block;font-size:1.25rem}
+.stats span{font-size:.8rem;color:var(--mute)}
+#graf{width:100%;height:auto;display:block}
+.x{background:none;border:0;color:var(--mute);cursor:pointer;font-size:1rem;padding:2px 6px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.cur td{background:var(--bg);font-weight:600}
+@media(max-width:420px){.add{grid-template-columns:1fr 1fr}.add .btn{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<main>
+<h1>Calculadora de dieta</h1>
+<p class="sub">Gasto diário, calorias da meta e macros, com progressão semanal.</p>
+
+<section>
+<h2>Seus dados</h2>
+<div class="grid">
+<label>Sexo
+<select id="sexo"><option value="m">Masculino</option><option value="f">Feminino</option></select></label>
+<label>Idade
+<input id="idade" type="number" inputmode="numeric" value="25" min="14" max="90"></label>
+<label>Peso (kg)
+<input id="peso" type="number" inputmode="decimal" value="75" step="0.1" min="30"></label>
+<label>Altura (cm)
+<input id="altura" type="number" inputmode="numeric" value="175" min="120" max="230"></label>
+<label class="full">Nível de atividade
+<select id="atv">
+<option value="1.2">Sedentário (quase sem treino)</option>
+<option value="1.375">Leve (1 a 3 treinos/semana)</option>
+<option value="1.55" selected>Moderado (3 a 5 treinos/semana)</option>
+<option value="1.725">Alto (6 a 7 treinos/semana)</option>
+<option value="1.9">Muito alto (treino pesado + trabalho físico)</option>
+</select></label>
+<label class="full">Percentual de gordura (opcional, usa Katch-McArdle)
+<input id="bf" type="number" inputmode="decimal" placeholder="ex: 18" step="0.1" min="3" max="60"></label>
+</div>
+</section>
+
+<section>
+<h2>Objetivo</h2>
+<div class="seg" role="group" aria-label="Objetivo">
+<button type="button" data-m="manter" aria-pressed="false">Manter</button>
+<button type="button" data-m="recomp" aria-pressed="true">Recomposição</button>
+<button type="button" data-m="cut" aria-pressed="false">Cutting</button>
+<button type="button" data-m="bulk" aria-pressed="false">Bulking limpo</button>
+</div>
+<div class="grid">
+<label>Ajuste inicial (kcal/dia)
+<input id="ajuste" type="number" inputmode="numeric" step="25"></label>
+<label>Mudança por semana (kcal)
+<input id="semanal" type="number" inputmode="numeric" step="25"></label>
+<label>Proteína (g/kg)
+<input id="prot" type="number" inputmode="decimal" value="2" step="0.1"></label>
+<label>Gordura (g/kg)
+<input id="gord" type="number" inputmode="decimal" value="0.8" step="0.1"></label>
+<label>Início da fase
+<input id="inicio" type="date"></label>
+<label>Semanas na tabela
+<input id="semanas" type="number" inputmode="numeric" value="12" min="1" max="52"></label>
+</div>
+<p class="hint" id="dica"></p>
+</section>
+
+<section aria-live="polite">
+<h2 id="tit">Sua meta agora</h2>
+<div class="big"><span id="alvo">0</span> <small>kcal/dia</small></div>
+<div class="row"><span>Basal (TMB): <b id="tmb">0</b></span><span>Manutenção (TDEE): <b id="tdee">0</b></span><span id="difSpan"></span></div>
+<div class="bar"><i id="bp" style="background:var(--p)"></i><i id="bc" style="background:var(--c)"></i><i id="bf2" style="background:var(--f)"></i></div>
+<div class="macros">
+<div><b id="mp" style="color:var(--p)">0g</b><span>Proteína</span></div>
+<div><b id="mc" style="color:var(--c)">0g</b><span>Carboidrato</span></div>
+<div><b id="mf" style="color:var(--f)">0g</b><span>Gordura</span></div>
+</div>
+<p class="hint" id="ritmo"></p>
+<button class="btn ghost" id="aplicar" type="button" hidden style="margin-top:8px"></button>
+</section>
+
+<section>
+<h2>Progressão semanal</h2>
+<div class="wrap"><table>
+<thead><tr><th>Semana</th><th>kcal</th><th>Prot</th><th>Carbo</th><th>Gord</th><th>vs manut.</th></tr></thead>
+<tbody id="tb"></tbody>
+</table></div>
+<p class="hint">Proteína e gordura ficam fixas por kg. O carboidrato absorve a variação de calorias. Se o peso não andar no ritmo esperado por 2 semanas, ajuste e siga.</p>
+</section>
+
+<section>
+<h2>Acompanhamento de peso</h2>
+<div class="add" id="login" hidden style="margin-bottom:14px">
+<label style="grid-column:1/3">Senha de acesso (para salvar na nuvem)<input id="senha" type="password" autocomplete="current-password"></label>
+<button class="btn" id="entrar" type="button">Entrar</button>
+</div>
+<p class="hint" id="sync" style="margin:0 0 12px"></p>
+<div class="add">
+<label>Data<input id="hData" type="date"></label>
+<label>Peso (kg)<input id="hPeso" type="number" inputmode="decimal" step="0.1" placeholder="ex: 74.8"></label>
+<button class="btn" id="hSalvar" type="button">Salvar peso</button>
+</div>
+<p class="hint">Se salvar de novo na mesma data, o valor é substituído.</p>
+<div class="stats">
+<div><b id="sAtual">-</b><span>Último peso</span></div>
+<div><b id="sTotal">-</b><span>Variação total</span></div>
+<div><b id="sSem">-</b><span>Média por semana</span></div>
+</div>
+<div id="grafBox"></div>
+<div class="wrap"><table>
+<thead><tr><th>Data</th><th>Peso</th><th>Variação</th><th></th></tr></thead>
+<tbody id="hTb"></tbody>
+</table></div>
+<div class="tools">
+<button class="btn ghost" id="hUsar" type="button">Usar último peso na calculadora</button>
+<button class="btn ghost" id="hExp" type="button">Exportar backup</button>
+<button class="btn ghost" id="hImpBtn" type="button">Importar backup</button>
+<input id="hImp" type="file" accept=".json" hidden>
+</div>
+<p class="hint">Com a nuvem ativa, o histórico fica guardado fora do navegador. O backup é um extra de segurança.</p>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const M={
+ manter:{a:0,s:0,d:"Mantém o peso. Sem progressão."},
+ recomp:{a:-200,s:0,d:"Déficit de 200 kcal por dia para perder gordura mantendo massa. Se estagnar, aumente a 'mudança por semana' para -50 ou -100."},
+ cut:{a:-400,s:-50,d:"Déficit moderado (cerca de 0,5 a 1% do peso por semana). Cada semana reduz um pouco para compensar a adaptação."},
+ bulk:{a:150,s:50,d:"Superávit pequeno para ganhar com pouca gordura. Cada semana aumenta um pouco; pare de subir se ganhar mais de 0,5% do peso por semana."}
+};
+let modo="recomp";
+const n=id=>parseFloat($(id).value)||0;
+const r=x=>Math.round(x);
+
+function setModo(m,reset=true){
+ modo=m;
+ document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===m));
+ if(reset){$("ajuste").value=M[m].a;$("semanal").value=M[m].s}
+ $("dica").textContent=M[m].d;
+ calc();
+}
+
+function calc(){
+ const peso=n("peso"),alt=n("altura"),id=n("idade"),bf=n("bf");
+ let tmb;
+ if(bf>0&&bf<60) tmb=370+21.6*peso*(1-bf/100);
+ else tmb=10*peso+6.25*alt-5*id+($("sexo").value==="m"?5:-161);
+ const tdee=tmb*n("atv");
+ const aj=n("ajuste"),sem=n("semanal"),W=Math.max(1,Math.min(52,n("semanas")||12));
+ const pg=n("prot")*peso,gg=n("gord")*peso;
+
+ const linha=w=>{
+  const kcal=Math.max(1000,tdee+aj+sem*(w-1));
+  const carb=Math.max(0,(kcal-pg*4-gg*9)/4);
+  return {w,kcal,carb,dif:kcal-tdee};
+ };
+ window.TD=tdee;
+ const ini=$("inicio").value;
+ let wa=1;
+ if(ini)wa=Math.max(1,Math.floor((new Date(hoje())-new Date(ini))/864e5/7)+1);
+ const s1=linha(wa);
+ $("tit").textContent="Sua meta agora (semana "+wa+")";
+ $("tmb").textContent=r(tmb);$("tdee").textContent=r(tdee);
+ $("alvo").textContent=r(s1.kcal);
+ $("difSpan").textContent=(s1.dif>=0?"+":"")+r(s1.dif)+" kcal vs manutenção";
+ $("mp").textContent=r(pg)+"g";$("mc").textContent=r(s1.carb)+"g";$("mf").textContent=r(gg)+"g";
+ const kp=pg*4,kc=s1.carb*4,kf=gg*9,t=(kp+kc+kf)||1;
+ $("bp").style.width=kp/t*100+"%";$("bc").style.width=kc/t*100+"%";$("bf2").style.width=kf/t*100+"%";
+
+ let h="";
+ for(let w=1;w<=Math.max(W,wa);w++){
+  const l=linha(w);
+  h+=`<tr${w===wa?" class=cur":""}><td>${w}${w===wa?" (atual)":""}</td><td><b>${r(l.kcal)}</b></td><td>${r(pg)}g</td><td>${r(l.carb)}g</td><td>${r(gg)}g</td><td>${l.dif>=0?"+":""}${r(l.dif)}</td></tr>`;
+ }
+ $("tb").innerHTML=h;ritmo();
+}
+
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{setModo(b.dataset.m);salvarCfg()});
+document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",()=>{calc();if(CF.includes(e.id))salvarCfg()}));
+/* ---------- Histórico de peso ---------- */
+const KEY="dieta-pesos";
+const SKEY="dieta-senha";
+let hist=[],senha="",online=false;
+try{hist=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){hist=[]}
+const status=t=>{$("sync").textContent=t};
+const cache=()=>{try{localStorage.setItem(KEY,JSON.stringify(hist))}catch(e){}};
+
+async function api(method,body,k){
+ const r=await fetch("/api/pesos"+(k?"?k="+k:""),{method,headers:{"x-senha":senha,"content-type":"application/json"},body:body&&JSON.stringify(body)});
+ if(r.status===401)throw new Error("senha");
+ if(!r.ok)throw new Error("http");
+ return r.json();
+}
+async function salvar(){
+ cache();
+ if(!online)return;
+ status("Salvando...");
+ try{await api("PUT",hist);status("Salvo na nuvem.")}
+ catch(e){status("Não consegui salvar na nuvem. Tente de novo.")}
+}
+async function carregar(){
+ senha=localStorage.getItem(SKEY)||"";
+ if(!senha){$("login").hidden=false;status("Digite a senha para sincronizar com a nuvem.");return}
+ try{
+  const srv=await api("GET");
+  online=true;$("login").hidden=true;
+  if(!srv.length&&hist.length){await api("PUT",hist);status("Histórico deste navegador enviado para a nuvem.")}
+  else{hist=srv;cache();status("Sincronizado com a nuvem.")}
+  try{const c=await api("GET",null,"config");if(c&&c.modo)aplicarCfg(c);else salvarCfg()}catch(e){}
+ }catch(e){
+  if(e.message==="senha"){localStorage.removeItem(SKEY);$("login").hidden=false;status("Senha incorreta.")}
+  else status("Nuvem indisponível. Os dados ficam só neste navegador por enquanto.");
+ }
+}
+const CF=["sexo","idade","altura","atv","bf","ajuste","semanal","prot","gord","semanas","inicio"];
+const lerCfg=()=>{const c={modo};CF.forEach(k=>c[k]=$(k).value);return c};
+function aplicarCfg(c){
+ CF.forEach(k=>{if(c[k]!==undefined)$(k).value=c[k]});
+ setModo(c.modo||modo,c.ajuste===undefined);
+}
+let tCfg;
+function salvarCfg(){
+ try{localStorage.setItem("dieta-cfg",JSON.stringify(lerCfg()))}catch(e){}
+ if(!online)return;
+ clearTimeout(tCfg);
+ tCfg=setTimeout(()=>api("PUT",lerCfg(),"config").catch(()=>{}),800);
+}
+const ALVO={manter:[-0.25,0.25],recomp:[-0.5,0.1],cut:[-1,-0.25],bulk:[0.1,0.5]};
+let sugest=0;
+function ritmo(){
+ const el=$("ritmo"),bt=$("aplicar");
+ bt.hidden=true;sugest=0;
+ const lim=new Date(hoje()).getTime()-21*864e5;
+ const j=hist.filter(x=>new Date(x.d).getTime()>=lim);
+ const dias=j.length>1?(new Date(j[j.length-1].d)-new Date(j[0].d))/864e5:0;
+ if(dias<7){el.textContent="Para avaliar o ritmo, salve pesos com pelo menos 7 dias de diferença (considera as últimas 3 semanas).";return}
+ const kg=(j[j.length-1].p-j[0].p)/dias*7,pct=kg/j[j.length-1].p*100,[a,b]=ALVO[modo];
+ let t="Ritmo real: "+sinal(kg)+" kg/semana ("+pct.toFixed(2)+"% do peso). Faixa alvo: "+a+"% a "+b+"% por semana. ";
+ if(pct<a)sugest=100;else if(pct>b)sugest=-100;
+ if(!sugest)t+="Dentro do alvo, mantenha o plano.";
+ else{
+  const sg=(sugest>0?"+":"")+sugest;
+  t+="Ritmo "+(sugest>0?"abaixo":"acima")+" da faixa. Sugestão: "+sg+" kcal por dia (cerca de "+(sugest>0?"+":"")+sugest/4+" g de carboidrato). O peso oscila com água, então confirme com 2 semanas.";
+  bt.textContent="Aplicar "+sg+" kcal";bt.hidden=false;
+ }
+ el.textContent=t;
+}
+$("aplicar").onclick=()=>{$("ajuste").value=n("ajuste")+sugest;calc();salvarCfg()};
+
+async function iniciar(){
+ await carregar();
+ hist.sort((a,b)=>a.d.localeCompare(b.d));
+ if(hist.length)$("peso").value=hist[hist.length-1].p;
+ renderHist();calc();
+}
+$("entrar").onclick=()=>{
+ const v=$("senha").value.trim();if(!v)return;
+ localStorage.setItem(SKEY,v);$("senha").value="";iniciar();
+};
+$("senha").addEventListener("keydown",e=>{if(e.key==="Enter")$("entrar").click()});
+const hoje=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const fmtData=s=>s.split("-").reverse().join("/");
+const sinal=x=>(x>0?"+":"")+x.toFixed(1);
+
+function renderHist(){
+ hist.sort((a,b)=>a.d.localeCompare(b.d));
+ const L=hist.length;
+ $("sAtual").textContent=L?hist[L-1].p.toFixed(1)+" kg":"-";
+ if(L>1){
+  const tot=hist[L-1].p-hist[0].p;
+  const dias=(new Date(hist[L-1].d)-new Date(hist[0].d))/864e5;
+  $("sTotal").textContent=sinal(tot)+" kg";
+  $("sSem").textContent=dias>0?sinal(tot/dias*7)+" kg":"-";
+ }else{$("sTotal").textContent="-";$("sSem").textContent="-"}
+
+ let h="";
+ for(let i=L-1;i>=0;i--){
+  const dif=i>0?sinal(hist[i].p-hist[i-1].p):"-";
+  h+=`<tr><td>${fmtData(hist[i].d)}</td><td><b>${hist[i].p.toFixed(1)}</b></td><td>${dif}</td><td><button class="x" data-d="${hist[i].d}" aria-label="Apagar ${fmtData(hist[i].d)}">✕</button></td></tr>`;
+ }
+ $("hTb").innerHTML=h||'<tr><td colspan="4" style="text-align:center;color:var(--mute)">Nenhum peso salvo ainda.</td></tr>';
+ grafico();ritmo();
+}
+
+function grafico(){
+ const box=$("grafBox");
+ if(hist.length<2){box.innerHTML="";return}
+ const W=600,H=180,pl=38,pr=10,pt=10,pb=22;
+ const ps=hist.map(x=>x.p),mn=Math.min(...ps)-0.5,mx=Math.max(...ps)+0.5;
+ const t0=new Date(hist[0].d).getTime(),t1=new Date(hist[hist.length-1].d).getTime()||t0+1;
+ const X=d=>pl+(new Date(d).getTime()-t0)/((t1-t0)||1)*(W-pl-pr);
+ const Y=p=>pt+(1-(p-mn)/(mx-mn))*(H-pt-pb);
+ const pts=hist.map(x=>X(x.d).toFixed(1)+","+Y(x.p).toFixed(1)).join(" ");
+ const dots=hist.map(x=>`<circle cx="${X(x.d).toFixed(1)}" cy="${Y(x.p).toFixed(1)}" r="3.5" fill="var(--accent)"><title>${fmtData(x.d)}: ${x.p.toFixed(1)} kg</title></circle>`).join("");
+ box.innerHTML=`<svg id="graf" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de peso ao longo do tempo">
+ <text x="${pl-6}" y="${pt+4}" text-anchor="end" font-size="11" fill="var(--mute)">${mx.toFixed(1)}</text>
+ <text x="${pl-6}" y="${H-pb}" text-anchor="end" font-size="11" fill="var(--mute)">${mn.toFixed(1)}</text>
+ <line x1="${pl}" x2="${W-pr}" y1="${H-pb}" y2="${H-pb}" stroke="var(--line)"/>
+ <text x="${pl}" y="${H-5}" font-size="11" fill="var(--mute)">${fmtData(hist[0].d)}</text>
+ <text x="${W-pr}" y="${H-5}" text-anchor="end" font-size="11" fill="var(--mute)">${fmtData(hist[hist.length-1].d)}</text>
+ <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>${dots}</svg>`;
+}
+
+$("hSalvar").onclick=()=>{
+ const p=parseFloat($("hPeso").value),d=$("hData").value||hoje();
+ if(!(p>20&&p<400)){$("hPeso").focus();return}
+ hist=hist.filter(x=>x.d!==d);hist.push({d,p});
+ salvar();$("hPeso").value="";
+ $("peso").value=hist.slice().sort((a,b)=>a.d.localeCompare(b.d)).pop().p;
+ renderHist();calc();
+};
+$("hPeso").addEventListener("keydown",e=>{if(e.key==="Enter")$("hSalvar").click()});
+$("hTb").onclick=e=>{
+ const d=e.target.dataset&&e.target.dataset.d;
+ if(d&&confirm("Apagar o registro de "+fmtData(d)+"?")){hist=hist.filter(x=>x.d!==d);salvar();renderHist()}
+};
+$("hUsar").onclick=()=>{if(hist.length){$("peso").value=hist[hist.length-1].p;calc();window.scrollTo({top:0,behavior:"smooth"})}};
+$("hExp").onclick=()=>{
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(hist,null,1)],{type:"application/json"}));
+ a.download="pesos-"+hoje()+".json";a.click();URL.revokeObjectURL(a.href);
+};
+$("hImpBtn").onclick=()=>$("hImp").click();
+$("hImp").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{
+  try{
+   const arr=JSON.parse(rd.result).filter(x=>x&&/^\d{4}-\d{2}-\d{2}$/.test(x.d)&&x.p>20&&x.p<400);
+   const m=new Map(hist.map(x=>[x.d,x.p]));arr.forEach(x=>m.set(x.d,x.p));
+   hist=[...m].map(([d,p])=>({d,p}));salvar();renderHist();
+  }catch(err){alert("Arquivo inválido. Use um backup exportado por aqui.")}
+  e.target.value="";
+ };
+ rd.readAsText(f);
+};
+
+$("hData").value=hoje();
+let c0=null;
+try{c0=JSON.parse(localStorage.getItem("dieta-cfg"))}catch(e){}
+if(c0&&c0.modo)aplicarCfg(c0);else setModo("recomp");
+if(!$("inicio").value){$("inicio").value=hoje();salvarCfg()}
+iniciar();
+</script>
+</body>
+</html>
